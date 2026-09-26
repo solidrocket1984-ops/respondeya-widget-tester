@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RespondeYA Widget Tester</title>
-  <meta name="description" content="Pega un snippet de widget de RespondeYA y previsualízalo en este dominio.">
+  <meta name="description" content="Carga widgets de RespondeYA por snippet, URL o UUID y previsualízalos en este dominio.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23EA580C'/%3E%3Ctext x='50' y='68' font-family='system-ui' font-size='52' font-weight='700' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
   <style>
     :root {
@@ -19,10 +19,13 @@
       --success: #16A34A;
       --error: #DC2626;
       --info: #0284C7;
+      --warning: #B45309;
       --radius: 12px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    [hidden] { display: none !important; }
 
     html, body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
@@ -70,13 +73,15 @@
       width: 100%;
     }
 
-    form {
+    .card {
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       padding: 24px;
       margin-bottom: 28px;
     }
+
+    form { padding-bottom: 4px; }
 
     label {
       display: block;
@@ -88,7 +93,7 @@
 
     textarea {
       width: 100%;
-      min-height: 120px;
+      min-height: 100px;
       padding: 12px 14px;
       font-family: ui-monospace, "SF Mono", Menlo, monospace;
       font-size: 13px;
@@ -102,13 +107,46 @@
       transition: border-color 0.15s, box-shadow 0.15s;
     }
 
-    textarea:focus {
+    textarea:focus,
+    select:focus,
+    input[type="text"]:focus {
       border-color: var(--primary);
       box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.12);
     }
 
+    .field-hint {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .field-grid label {
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    select,
+    input[type="text"] {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 13px;
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      font-family: inherit;
+    }
+
     button[type="submit"] {
-      margin-top: 14px;
+      margin-top: 18px;
       padding: 11px 20px;
       font-size: 15px;
       font-weight: 600;
@@ -135,11 +173,39 @@
       cursor: not-allowed;
     }
 
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .btn-secondary {
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary-dark);
+      background: var(--card);
+      border: 1px solid var(--primary);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-secondary:hover { background: var(--primary-light); }
+    .btn-secondary:disabled {
+      color: var(--text-muted);
+      border-color: var(--border);
+      background: var(--bg);
+      cursor: not-allowed;
+    }
+
     .status {
       margin-top: 14px;
       padding: 10px 14px;
       border-radius: 8px;
       font-size: 13px;
+      word-break: break-word;
       display: none;
     }
 
@@ -147,15 +213,10 @@
     .status-info    { background: #EFF6FF; color: var(--info);    border: 1px solid #BFDBFE; }
     .status-success { background: #F0FDF4; color: var(--success); border: 1px solid #BBF7D0; }
     .status-error   { background: #FEF2F2; color: var(--error);   border: 1px solid #FECACA; }
+    .status-warning { background: #FFFBEB; color: var(--warning); border: 1px solid #FDE68A; }
 
-    .instructions {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px;
-    }
-
-    .instructions h2 {
+    .instructions h2,
+    .recent h2 {
       font-size: 16px;
       font-weight: 600;
       margin-bottom: 14px;
@@ -203,6 +264,61 @@
       border-radius: 4px;
     }
 
+    .recent-empty {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .recent-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .recent-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .recent-load {
+      flex: 1;
+      text-align: left;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      font-family: ui-monospace, "SF Mono", Menlo, monospace;
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .recent-load:hover { border-color: var(--primary); }
+
+    .recent-item input[type="text"] {
+      width: 130px;
+      flex-shrink: 0;
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
+    .recent-actions {
+      margin-top: 14px;
+    }
+
+    .btn-link-danger {
+      background: none;
+      border: 0;
+      padding: 0;
+      color: var(--error);
+      font-size: 13px;
+      text-decoration: underline;
+      cursor: pointer;
+    }
+
     footer {
       max-width: 720px;
       margin: 0 auto;
@@ -219,34 +335,122 @@
     }
 
     footer a:hover { text-decoration: underline; }
+
+    .mobile-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(28, 25, 23, 0.65);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .mobile-frame {
+      width: 390px;
+      max-width: 100%;
+      height: 780px;
+      max-height: 80vh;
+      border: 8px solid #1C1917;
+      border-radius: 28px;
+      background: white;
+    }
+
+    .mobile-close {
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      background: white;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    body.embed-mode header,
+    body.embed-mode main,
+    body.embed-mode footer {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <header>
     <h1>RespondeYA<span class="accent">·</span>Widget Tester</h1>
-    <p class="subtitle">Pega un snippet de widget para previsualizarlo en este dominio.</p>
+    <p class="subtitle">Pega un snippet, una URL de widget o un UUID de workspace para previsualizarlo en este dominio.</p>
   </header>
 
   <main>
-    <form id="loader-form" novalidate>
-      <label for="snippet">Pega aquí el snippet completo del agente</label>
+    <form id="loader-form" class="card" novalidate>
+      <label for="snippet">Snippet, URL del script o UUID del workspace</label>
       <textarea
         id="snippet"
         spellcheck="false"
         autocapitalize="off"
         autocomplete="off"
-        placeholder='&lt;script src="https://agent-tools-mvp.onrender.com/widget/00000000-0000-0000-0000-000000000000" async&gt;&lt;/script&gt;'
+        placeholder='&lt;script src="https://agent-tools-mvp.onrender.com/widget/00000000-0000-0000-0000-000000000000" async&gt;&lt;/script&gt;
+
+o solo: https://agent-tools-mvp.onrender.com/widget/00000000-0000-0000-0000-000000000000
+
+o solo: 00000000-0000-0000-0000-000000000000'
       ></textarea>
+      <p class="field-hint">Acepta el snippet completo, la URL del script o solo el UUID del workspace. Solo se cargan orígenes de <code>agent-tools-mvp.onrender.com</code>.</p>
+
+      <div class="field-grid">
+        <div>
+          <label for="lang-select">Idioma</label>
+          <select id="lang-select">
+            <option value="es" selected>Español (es)</option>
+            <option value="ca">Català (ca)</option>
+            <option value="en">English (en)</option>
+            <option value="fr">Français (fr)</option>
+            <option value="de">Deutsch (de)</option>
+          </select>
+        </div>
+        <div>
+          <label for="position-select">Posición</label>
+          <select id="position-select">
+            <option value="right" selected>Derecha</option>
+            <option value="left">Izquierda</option>
+          </select>
+        </div>
+        <div>
+          <label for="color-input">Color (opcional)</label>
+          <input type="text" id="color-input" placeholder="#EA580C" autocomplete="off">
+        </div>
+      </div>
+
       <button type="submit">Cargar widget</button>
+
+      <div class="btn-row">
+        <button type="button" id="new-session-btn" class="btn-secondary" disabled>Nueva sesión</button>
+        <button type="button" id="mobile-view-btn" class="btn-secondary">Vista móvil</button>
+        <button type="button" id="copy-link-btn" class="btn-secondary">Copiar enlace de prueba</button>
+      </div>
+
       <div id="status" class="status" aria-live="polite"></div>
     </form>
 
-    <section class="instructions">
+    <section class="card recent">
+      <h2>Recientes</h2>
+      <p id="recent-empty" class="recent-empty">Aún no has probado ningún agente en este navegador.</p>
+      <ul id="recent-list" class="recent-list"></ul>
+      <div class="recent-actions">
+        <button type="button" id="clear-recent-btn" class="btn-link-danger">Borrar lista de recientes</button>
+      </div>
+    </section>
+
+    <section class="card instructions">
       <h2>Instrucciones</h2>
       <ol>
-        <li>Copia el snippet desde tu portal en <code>Canales → Instalar widget en tu web</code>.</li>
-        <li>Pégalo en el área de arriba y pulsa <strong>Cargar widget</strong>.</li>
-        <li>El widget aparece en la esquina inferior derecha. Habla con tu agente como un usuario real.</li>
+        <li>Copia el snippet desde <code>Canales → Instalar widget en tu web</code>, o pega directamente la URL del script, o solo el UUID del workspace.</li>
+        <li>Ajusta idioma, posición y color si quieres, y pulsa <strong>Cargar widget</strong>. Cada carga crea una sesión nueva.</li>
+        <li>Usa <strong>Nueva sesión</strong> para forzar un SID limpio sin cambiar la configuración, <strong>Vista móvil</strong> para verlo en un viewport de 390×780, o <strong>Copiar enlace de prueba</strong> para compartir esta configuración.</li>
+        <li>Los últimos 10 agentes probados quedan guardados en este navegador en la sección <strong>Recientes</strong>; puedes ponerles una etiqueta y volver a cargarlos con un clic.</li>
+        <li>Si el widget avisa de un origen no autorizado o de una configuración pendiente, el aviso aparece arriba junto con el dominio que hay que autorizar.</li>
       </ol>
     </section>
   </main>
@@ -258,12 +462,43 @@
     </small>
   </footer>
 
+  <div id="mobile-overlay" class="mobile-overlay" hidden>
+    <iframe id="mobile-frame" class="mobile-frame" title="Vista móvil del widget"></iframe>
+    <button type="button" id="mobile-close-btn" class="mobile-close">Cerrar vista móvil</button>
+  </div>
+
   <script>
     (function () {
+      var WIDGET_HOST = 'https://agent-tools-mvp.onrender.com/widget/';
+      var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      var SRC_RE = /^https:\/\/agent-tools-mvp\.onrender\.com\/widget\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:[/?#][^\s]*)?$/i;
+      var LANGS = ['es', 'ca', 'en', 'fr', 'de'];
+      var POSITIONS = ['right', 'left'];
+      var RECENT_KEY = 'ry-widget-tester:recent';
+      var originalConsoleWarn = console.warn;
+
       var form = document.getElementById('loader-form');
       var textarea = document.getElementById('snippet');
+      var langSelect = document.getElementById('lang-select');
+      var positionSelect = document.getElementById('position-select');
+      var colorInput = document.getElementById('color-input');
       var statusEl = document.getElementById('status');
+      var newSessionBtn = document.getElementById('new-session-btn');
+      var mobileViewBtn = document.getElementById('mobile-view-btn');
+      var copyLinkBtn = document.getElementById('copy-link-btn');
+      var recentListEl = document.getElementById('recent-list');
+      var recentEmptyEl = document.getElementById('recent-empty');
+      var clearRecentBtn = document.getElementById('clear-recent-btn');
+      var mobileOverlay = document.getElementById('mobile-overlay');
+      var mobileFrame = document.getElementById('mobile-frame');
+      var mobileCloseBtn = document.getElementById('mobile-close-btn');
+
       var lastScript = null;
+      var warnTimer = null;
+      var currentUuid = null;
+      var currentLang = null;
+      var currentPosition = null;
+      var currentColor = null;
 
       function setStatus(msg, kind) {
         statusEl.textContent = msg;
@@ -275,6 +510,85 @@
         statusEl.className = 'status';
       }
 
+      // --- Extracción y validación de origen -------------------------------
+
+      function extractSrcFromSnippet(text) {
+        var m = text.match(/<script[^>]*\ssrc\s*=\s*["']([^"']+)["'][^>]*>/i);
+        return m ? m[1] : null;
+      }
+
+      function resolveUuid(raw) {
+        var input = (raw || '').trim();
+        if (!input) {
+          return { error: 'Pega un snippet, una URL o un UUID de workspace.' };
+        }
+
+        var src = null;
+        if (/<script/i.test(input)) {
+          src = extractSrcFromSnippet(input);
+          if (!src) {
+            return { error: 'No encuentro <script src="..."> en el snippet pegado.' };
+          }
+        } else if (/^https?:\/\//i.test(input)) {
+          src = input;
+        }
+
+        if (src !== null) {
+          var match = SRC_RE.exec(src.trim());
+          if (!match) {
+            return { error: 'Origen rechazado por seguridad: el script debe apuntar a https://agent-tools-mvp.onrender.com/widget/<uuid>.' };
+          }
+          return { uuid: match[1].toLowerCase() };
+        }
+
+        if (!UUID_RE.test(input)) {
+          return { error: 'Eso no es un snippet, una URL ni un UUID de workspace válido.' };
+        }
+        return { uuid: input.toLowerCase() };
+      }
+
+      function buildSrc(uuid, lang, position, color) {
+        var params = new URLSearchParams();
+        if (lang) params.set('lang', lang);
+        if (position) params.set('position', position);
+        if (color) params.set('color', color);
+        var qs = params.toString();
+        return WIDGET_HOST + uuid + (qs ? '?' + qs : '');
+      }
+
+      // --- Diagnóstico: captura de console.warn durante la carga -----------
+
+      function startWarnCapture() {
+        if (warnTimer) {
+          clearTimeout(warnTimer);
+          console.warn = originalConsoleWarn;
+          warnTimer = null;
+        }
+        var captured = [];
+        console.warn = function () {
+          captured.push(Array.prototype.slice.call(arguments).map(String).join(' '));
+          originalConsoleWarn.apply(console, arguments);
+        };
+        warnTimer = setTimeout(function () {
+          console.warn = originalConsoleWarn;
+          warnTimer = null;
+          handleCapturedWarnings(captured);
+        }, 4000);
+      }
+
+      function handleCapturedWarnings(list) {
+        if (!list.length) return;
+        var joined = list.join(' | ');
+        var isRelevant = /no autorizad|not authorized|unauthoriz|pendiente de configuraci|pending configuration/i.test(joined);
+        if (isRelevant) {
+          setStatus('Aviso del widget: "' + joined + '". Dominio a autorizar: ' + location.origin, 'warning');
+        } else {
+          setStatus('Aviso del widget: ' + joined, 'warning');
+        }
+      }
+
+      // --- Carga / limpieza del widget --------------------------------------
+
       function cleanupPrevious() {
         if (lastScript && lastScript.parentNode) {
           lastScript.parentNode.removeChild(lastScript);
@@ -285,44 +599,297 @@
         if (w && w.parentNode) w.parentNode.removeChild(w);
       }
 
-      function extractSrc(snippet) {
-        var m = snippet.match(/<script[^>]*\ssrc\s*=\s*["']([^"']+)["'][^>]*>/i);
-        return m ? m[1] : null;
-      }
-
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        var snippet = textarea.value.trim();
-        if (!snippet) {
-          setStatus('Pega primero el snippet.', 'error');
-          return;
-        }
-        var src = extractSrc(snippet);
-        if (!src) {
-          setStatus('No encuentro <script src="..."> en el snippet. Revisa que lo hayas copiado completo.', 'error');
-          return;
-        }
-        if (!/^https?:\/\//i.test(src)) {
-          setStatus('El src debe ser una URL completa http(s)://', 'error');
+      function loadWidget(uuid, lang, position, color) {
+        var src = buildSrc(uuid, lang, position, color);
+        if (!SRC_RE.test(src)) {
+          setStatus('Bloqueado por seguridad: el origen generado no es válido.', 'error');
           return;
         }
 
         cleanupPrevious();
         clearStatus();
+        setStatus('Cargando...', 'info');
+        startWarnCapture();
 
         var script = document.createElement('script');
         script.src = src;
         script.async = true;
         script.onload = function () {
-          setStatus('Widget cargado. Búscalo abajo a la derecha.', 'success');
+          setStatus('Widget cargado (sesión nueva). Búscalo en la posición configurada.', 'success');
         };
         script.onerror = function () {
-          setStatus('No se pudo cargar el script. Revisa la URL o que tu dominio esté en allowed_domains.', 'error');
+          setStatus('No se pudo cargar el script. Verifica el UUID o que este dominio esté en allowed_domains.', 'error');
         };
         document.body.appendChild(script);
         lastScript = script;
-        setStatus('Cargando...', 'info');
+
+        currentUuid = uuid;
+        currentLang = lang;
+        currentPosition = position;
+        currentColor = color;
+        newSessionBtn.disabled = false;
+
+        addRecent(uuid, lang, position, color);
+      }
+
+      function fillForm(entry) {
+        textarea.value = entry.uuid;
+        langSelect.value = LANGS.indexOf(entry.lang) !== -1 ? entry.lang : 'es';
+        positionSelect.value = POSITIONS.indexOf(entry.position) !== -1 ? entry.position : 'right';
+        colorInput.value = entry.color || '';
+      }
+
+      // --- Recientes (localStorage) -----------------------------------------
+
+      function loadRecent() {
+        try {
+          var raw = localStorage.getItem(RECENT_KEY);
+          return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function saveRecent(list) {
+        try {
+          localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+        } catch (e) {
+          // localStorage no disponible (modo privado, cuota, etc.): se ignora en silencio
+        }
+      }
+
+      function addRecent(uuid, lang, position, color) {
+        try {
+          var list = loadRecent();
+          var existingLabel = '';
+          for (var i = 0; i < list.length; i++) {
+            if (list[i].uuid === uuid) {
+              existingLabel = list[i].label || '';
+              break;
+            }
+          }
+          list = list.filter(function (e) { return e.uuid !== uuid; });
+          list.unshift({
+            uuid: uuid,
+            label: existingLabel,
+            lang: lang,
+            position: position,
+            color: color,
+            ts: Date.now()
+          });
+          list = list.slice(0, 10);
+          saveRecent(list);
+          renderRecent();
+        } catch (e) {
+          // no-op: recientes es una comodidad, no debe romper la carga del widget
+        }
+      }
+
+      function updateRecentLabel(uuid, label) {
+        try {
+          var list = loadRecent();
+          for (var i = 0; i < list.length; i++) {
+            if (list[i].uuid === uuid) {
+              list[i].label = label;
+              break;
+            }
+          }
+          saveRecent(list);
+        } catch (e) {
+          // no-op
+        }
+      }
+
+      function shortUuid(uuid) {
+        return uuid.slice(0, 8) + '…';
+      }
+
+      function renderRecent() {
+        var list = [];
+        try {
+          list = loadRecent();
+        } catch (e) {
+          list = [];
+        }
+
+        recentListEl.innerHTML = '';
+        recentEmptyEl.hidden = list.length > 0;
+
+        list.forEach(function (entry) {
+          var li = document.createElement('li');
+          li.className = 'recent-item';
+
+          var loadBtn = document.createElement('button');
+          loadBtn.type = 'button';
+          loadBtn.className = 'recent-load';
+          loadBtn.textContent = (entry.label ? entry.label + ' · ' : '') + shortUuid(entry.uuid) + ' · ' + (entry.lang || 'es') + '/' + (entry.position || 'right');
+          loadBtn.addEventListener('click', function () {
+            fillForm(entry);
+            loadWidget(entry.uuid, entry.lang || 'es', entry.position || 'right', entry.color || '');
+          });
+
+          var labelInput = document.createElement('input');
+          labelInput.type = 'text';
+          labelInput.placeholder = 'Etiqueta';
+          labelInput.value = entry.label || '';
+          labelInput.addEventListener('change', function () {
+            updateRecentLabel(entry.uuid, labelInput.value.trim());
+            renderRecent();
+          });
+
+          li.appendChild(loadBtn);
+          li.appendChild(labelInput);
+          recentListEl.appendChild(li);
+        });
+      }
+
+      clearRecentBtn.addEventListener('click', function () {
+        try {
+          localStorage.removeItem(RECENT_KEY);
+        } catch (e) {
+          // no-op
+        }
+        renderRecent();
       });
+
+      // --- Enlace directo / vista móvil --------------------------------------
+
+      function getShareParams() {
+        var raw = textarea.value.trim();
+        var result;
+        if (raw) {
+          result = resolveUuid(raw);
+        } else if (currentUuid) {
+          result = { uuid: currentUuid };
+        } else {
+          return { error: 'Escribe o carga un snippet, URL o UUID primero.' };
+        }
+        if (result.error) return result;
+        return {
+          uuid: result.uuid,
+          lang: langSelect.value,
+          position: positionSelect.value,
+          color: colorInput.value.trim()
+        };
+      }
+
+      function buildShareUrl(params, embed) {
+        var qs = new URLSearchParams();
+        qs.set('w', params.uuid);
+        if (params.lang) qs.set('lang', params.lang);
+        if (params.position) qs.set('position', params.position);
+        if (params.color) qs.set('color', params.color);
+        if (embed) qs.set('embed', '1');
+        return location.origin + location.pathname + '?' + qs.toString();
+      }
+
+      function legacyCopy(text) {
+        return new Promise(function (resolve, reject) {
+          try {
+            var ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        });
+      }
+
+      function copyToClipboard(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          // La API async puede rechazar (documento sin foco, permisos, contexto no seguro):
+          // en ese caso se reintenta con el método legacy en vez de darlo por fallido.
+          return navigator.clipboard.writeText(text).catch(function () {
+            return legacyCopy(text);
+          });
+        }
+        return legacyCopy(text);
+      }
+
+      copyLinkBtn.addEventListener('click', function () {
+        var params = getShareParams();
+        if (params.error) {
+          setStatus(params.error, 'error');
+          return;
+        }
+        var url = buildShareUrl(params, false);
+        copyToClipboard(url).then(function () {
+          setStatus('Enlace copiado: ' + url, 'success');
+        }).catch(function () {
+          setStatus('No se pudo copiar automáticamente. Enlace: ' + url, 'error');
+        });
+      });
+
+      mobileViewBtn.addEventListener('click', function () {
+        var params = getShareParams();
+        if (params.error) {
+          setStatus(params.error, 'error');
+          return;
+        }
+        mobileFrame.src = buildShareUrl(params, true);
+        mobileOverlay.hidden = false;
+      });
+
+      mobileCloseBtn.addEventListener('click', function () {
+        mobileOverlay.hidden = true;
+        mobileFrame.src = 'about:blank';
+      });
+
+      // --- Nueva sesión --------------------------------------------------------
+
+      newSessionBtn.addEventListener('click', function () {
+        if (!currentUuid) {
+          setStatus('Primero carga un widget.', 'error');
+          return;
+        }
+        loadWidget(currentUuid, currentLang, currentPosition, currentColor);
+      });
+
+      // --- Formulario ------------------------------------------------------
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var result = resolveUuid(textarea.value);
+        if (result.error) {
+          setStatus(result.error, 'error');
+          return;
+        }
+        loadWidget(result.uuid, langSelect.value, positionSelect.value, colorInput.value.trim());
+      });
+
+      // --- Arranque: recientes + enlace directo (?w=...) + modo embed ------
+
+      renderRecent();
+
+      var initParams = new URLSearchParams(location.search);
+      if (initParams.get('embed') === '1') {
+        document.body.classList.add('embed-mode');
+      }
+
+      var wParam = initParams.get('w');
+      if (wParam) {
+        var langParam = initParams.get('lang') || 'es';
+        var positionParam = initParams.get('position') || 'right';
+        var colorParam = initParams.get('color') || '';
+
+        textarea.value = wParam;
+        langSelect.value = LANGS.indexOf(langParam) !== -1 ? langParam : 'es';
+        positionSelect.value = POSITIONS.indexOf(positionParam) !== -1 ? positionParam : 'right';
+        colorInput.value = colorParam;
+
+        var initResult = resolveUuid(wParam);
+        if (initResult.error) {
+          setStatus(initResult.error, 'error');
+        } else {
+          loadWidget(initResult.uuid, langSelect.value, positionSelect.value, colorInput.value.trim());
+        }
+      }
     })();
   </script>
 </body>
